@@ -90,7 +90,7 @@ module.exports = async function handler(req, res) {
             'apikey':        SUPABASE_KEY,
             'Authorization': `Bearer ${SUPABASE_KEY}`,
             'Content-Type':  'application/json',
-            'Prefer':        'return=minimal'
+            'Prefer':        'return=representation'   // returns the inserted row
         },
         body: JSON.stringify(row)
     });
@@ -101,5 +101,6 @@ module.exports = async function handler(req, res) {
         return res.status(500).json({ error: 'Database error' });
     }
 
-    return res.status(200).json({ ok: true });
+    const [inserted] = await dbRes.json();
+    return res.status(200).json({ ok: true, id: inserted?.id || null });
 };

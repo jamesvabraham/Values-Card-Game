@@ -662,9 +662,14 @@ async function showCompletion() {
     content.innerHTML = '';
     content.appendChild(comp);
 
-    // Generate portrait, then save session + show email opt-in
+    // Save session immediately — guaranteed before portrait or email,
+    // so closing the tab never loses the record.
+    // Returns the row ID so we can patch in the portrait once it's ready.
+    const rowId = await saveSession(order, '');
+
+    // Generate portrait, then patch the portrait into the existing row
     const portrait = await generatePortrait(order, portraitWrap);
-    saveSession(order, portrait);
+    if (portrait && rowId) updatePortrait(rowId, portrait);
     renderEmailOptIn(emailSection, order, portrait);
 }
 
@@ -749,7 +754,7 @@ Write the 1–2 sentence portrait now. Write in second person ("You are someone 
 /* ════════════════════════════════════════════
    SAVE SESSION  (anonymous, fire-and-forget)
 ════════════════════════════════════════════ */
-function saveSession(pyramidOrder, portrait) {
+async function saveSession(pyramidOrder, portrait) {
     const payload = JSON.stringify({
         browserId: getBrowserId(),
         gameData: {
@@ -762,16 +767,30 @@ function saveSession(pyramidOrder, portrait) {
         }
     });
 
-    // sendBeacon guarantees delivery even when the user closes the tab.
-    // Falls back to fetch for any environment that doesn't support it.
-    if (navigator.sendBeacon) {
-        navigator.sendBeacon('/api/save-session', new Blob([payload], { type: 'application/json' }));
-    } else {
-        fetch('/api/save-session', {
+    try {
+        const res = await fetch('/api/save-session', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: payload
-        }).catch(e => console.warn('Session save failed:', e.message));
+        });
+        const data = await res.json().catch(() => ({}));
+        return data.id || null;   // row ID for follow-up portrait patch
+    } catch (e) {
+        console.warn('Session save failed:', e.message);
+        return null;
+    }
+}
+
+function updatePortrait(rowId, portrait) {
+    const payload = JSON.stringify({ id: rowId, portrait });
+    if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/update-portrait', new Blob([payload], { type: 'application/json' }));
+    } else {
+        fetch('/api/update-portrait', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payload
+        }).catch(e => console.warn('Portrait update failed (non-critical):', e.message));
     }
 }
 
