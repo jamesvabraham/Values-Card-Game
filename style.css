@@ -279,10 +279,10 @@ body {
 .next-btn:disabled { opacity: 0.28; cursor: not-allowed; }
 
 .footer-hint {
-    font-size: 10.5px;
-    color: var(--text-3);
+    font-size: 13px;
+    color: var(--text-2);
     text-align: center;
-    margin-top: 7px;
+    margin-bottom: 10px;
 }
 
 /* ════════════════════════════════
