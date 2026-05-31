@@ -801,3 +801,94 @@ body {
     border-radius: 4px;
     padding: 1px 5px;
 }
+
+/* ════════════════════════════
+   EMAIL OPT-IN
+════════════════════════════ */
+.email-section {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 0 0 32px;
+}
+
+.email-opt-in {
+    border-top: 1px solid var(--border);
+    padding-top: 28px;
+    text-align: center;
+}
+
+.email-prompt {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 18px;
+    color: var(--text-1);
+    margin-bottom: 8px;
+}
+
+.email-note {
+    font-size: 12px;
+    color: var(--text-3);
+    margin-bottom: 18px;
+    line-height: 1.5;
+}
+
+.email-form {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.email-input {
+    flex: 1;
+    min-width: 200px;
+    max-width: 300px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    border: 1px solid var(--border-mid);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text-1);
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.email-input:focus {
+    border-color: var(--accent);
+}
+
+.email-input.input-error {
+    border-color: #c0392b;
+}
+
+.email-btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    background: var(--ink);
+    color: var(--ink-text);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.email-btn:hover  { opacity: 0.85; }
+.email-btn:disabled { opacity: 0.5; cursor: default; }
+
+.email-status {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #c0392b;
+    min-height: 18px;
+}
+
+.email-sent {
+    margin-top: 20px;
+    font-size: 15px;
+    color: var(--accent);
+    font-family: 'Lora', Georgia, serif;
+    font-style: italic;
+}

@@ -595,9 +595,21 @@ nextBtn.addEventListener('click', () => {
 });
 
 /* ════════════════════════════════════════════
+   SESSION ID  (anonymous, browser-scoped)
+════════════════════════════════════════════ */
+function getBrowserId() {
+    let id = localStorage.getItem('vcg_bid');
+    if (!id) {
+        id = crypto.randomUUID();
+        localStorage.setItem('vcg_bid', id);
+    }
+    return id;
+}
+
+/* ════════════════════════════════════════════
    COMPLETION
 ════════════════════════════════════════════ */
-function showCompletion() {
+async function showCompletion() {
     const order = [...placed.entries()]
         .sort(([a], [b]) => a - b)
         .map(([, v]) => label(v));
@@ -642,11 +654,18 @@ function showCompletion() {
     const portraitWrap = document.createElement('div');
     portraitWrap.className = 'ai-portrait';
 
-    comp.append(title, pyr, portraitWrap);
+    // Email opt-in container (rendered after portrait loads)
+    const emailSection = document.createElement('div');
+    emailSection.className = 'email-section';
+
+    comp.append(title, pyr, portraitWrap, emailSection);
     content.innerHTML = '';
     content.appendChild(comp);
 
-    generatePortrait(order, portraitWrap);
+    // Generate portrait, then save session + show email opt-in
+    const portrait = await generatePortrait(order, portraitWrap);
+    saveSession(order, portrait);
+    renderEmailOptIn(emailSection, order, portrait);
 }
 
 async function generatePortrait(pyramidOrder, container) {
@@ -710,7 +729,91 @@ Write the 1–2 sentence portrait now. Write in second person ("You are someone 
             <div class="portrait-label">Your values portrait</div>
             <p class="portrait-text">${portrait}</p>
         `;
+        return portrait;
     } catch (e) {
         container.innerHTML = `<p class="portrait-error">Couldn't generate portrait: ${e.message}</p>`;
+        return '';
     }
+}
+
+/* ════════════════════════════════════════════
+   SAVE SESSION  (anonymous, fire-and-forget)
+════════════════════════════════════════════ */
+function saveSession(pyramidOrder, portrait) {
+    const keptLabels      = [...kept].map(v => label(v));
+    const discardedLabels = [...discarded].map(v => label(v));
+    const selectedLabels  = [...selected].map(v => label(v));
+
+    fetch('/api/save-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            browserId: getBrowserId(),
+            gameData: {
+                selected:    selectedLabels,
+                kept:        keptLabels,
+                discarded:   discardedLabels,
+                comparisons: pairHistory,
+                pyramid:     pyramidOrder,
+                portrait
+            }
+        })
+    }).catch(e => console.warn('Session save failed (non-critical):', e.message));
+}
+
+/* ════════════════════════════════════════════
+   EMAIL OPT-IN
+════════════════════════════════════════════ */
+function renderEmailOptIn(container, pyramidOrder, portrait) {
+    const keptLabels = [...kept].map(v => label(v));
+
+    container.innerHTML = `
+        <div class="email-opt-in">
+            <p class="email-prompt">Want a copy of your results?</p>
+            <p class="email-note">Enter your email and we'll send it once. We don't store your address.</p>
+            <div class="email-form">
+                <input type="email" class="email-input" placeholder="you@example.com" />
+                <button class="email-btn">Send →</button>
+            </div>
+            <p class="email-status"></p>
+        </div>
+    `;
+
+    const input  = container.querySelector('.email-input');
+    const btn    = container.querySelector('.email-btn');
+    const status = container.querySelector('.email-status');
+
+    btn.addEventListener('click', async () => {
+        const email = input.value.trim();
+        if (!email || !email.includes('@')) {
+            input.classList.add('input-error');
+            return;
+        }
+        input.classList.remove('input-error');
+        btn.disabled    = true;
+        btn.textContent = 'Sending…';
+        status.textContent = '';
+
+        try {
+            const res = await fetch('/api/send-summary', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email,
+                    gameData: { pyramid: pyramidOrder, kept: keptLabels, portrait }
+                })
+            });
+
+            if (!res.ok) throw new Error('Send failed');
+
+            container.innerHTML = `<p class="email-sent">✓ Sent! Check your inbox.</p>`;
+        } catch (e) {
+            btn.disabled    = false;
+            btn.textContent = 'Send →';
+            status.textContent = 'Something went wrong — please try again.';
+        }
+    });
+
+    // Allow submitting with Enter key
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') btn.click(); });
 }
