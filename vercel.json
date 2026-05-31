@@ -2,7 +2,6 @@
   "version": 2,
   "functions": {
     "api/synthesize.js": {
-      "memory": 128,
       "maxDuration": 15
     }
   }
