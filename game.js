@@ -707,15 +707,22 @@ Write the 1–2 sentence portrait now. Write in second person ("You are someone 
     try {
         // All Claude API calls go through /api/synthesize so the API key
         // stays on the server and is never exposed to the browser.
+        // A 30-second timeout ensures this always resolves so saveSession
+        // is never left waiting indefinitely.
+        const controller = new AbortController();
+        const timeoutId  = setTimeout(() => controller.abort(), 30000);
+
         const res = await fetch('/api/synthesize', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
             body: JSON.stringify({
                 model: 'claude-opus-4-6',
                 max_tokens: 200,
                 messages: [{ role: 'user', content: prompt }]
             })
         });
+        clearTimeout(timeoutId);
 
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
@@ -731,7 +738,10 @@ Write the 1–2 sentence portrait now. Write in second person ("You are someone 
         `;
         return portrait;
     } catch (e) {
-        container.innerHTML = `<p class="portrait-error">Couldn't generate portrait: ${e.message}</p>`;
+        const msg = e.name === 'AbortError'
+            ? 'Portrait generation timed out.'
+            : `Couldn't generate portrait: ${e.message}`;
+        container.innerHTML = `<p class="portrait-error">${msg}</p>`;
         return '';
     }
 }
