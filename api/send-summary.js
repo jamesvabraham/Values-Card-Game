@@ -23,7 +23,7 @@ function card(value, label, bgColor, borderColor, textColor, labelColor, size) {
         </table>`;
 }
 
-function buildEmail({ pyramid, kept, portrait }) {
+function buildEmail({ pyramid, kept, discarded, portrait }) {
     const accent      = '#A86535';
     const accentPale  = '#F4EDE3';
     const accentBorder= '#C8834A';
@@ -81,6 +81,13 @@ function buildEmail({ pyramid, kept, portrait }) {
         `<span style="display:inline-block;margin:4px;padding:6px 14px;
                background:${surfaceAlt};border-radius:20px;font-size:13px;
                color:#2E2318;font-family:${sans};">${v}</span>`
+    ).join('');
+
+    const discardedPills = (discarded || []).map(v =>
+        `<span style="display:inline-block;margin:4px;padding:6px 14px;
+               background:${surface};border:1px solid ${border};border-radius:20px;
+               font-size:13px;color:#A89F97;font-family:${sans};
+               text-decoration:line-through;">${v}</span>`
     ).join('');
 
     const portraitHtml = portrait ? `
@@ -151,9 +158,20 @@ function buildEmail({ pyramid, kept, portrait }) {
                 <hr style="border:none;border-top:1px solid ${border};margin:0 0 24px;">
                 <p style="margin:0 0 12px;font-size:11px;letter-spacing:0.1em;
                            text-transform:uppercase;color:${light};font-family:${sans};">
-                    Your 12 values
+                    Your 12 kept values
                 </p>
                 <div>${keptPills}</div>
+            </td>
+        </tr>
+
+        <!-- 12 discarded -->
+        <tr>
+            <td style="padding:24px 40px 0;">
+                <p style="margin:0 0 12px;font-size:11px;letter-spacing:0.1em;
+                           text-transform:uppercase;color:${light};font-family:${sans};">
+                    12 values you let go
+                </p>
+                <div>${discardedPills}</div>
             </td>
         </tr>
 
@@ -191,9 +209,10 @@ module.exports = async function handler(req, res) {
 
     // Email is used here and nowhere else — it is not logged or stored
     const html = buildEmail({
-        pyramid:  gameData?.pyramid  || [],
-        kept:     gameData?.kept     || [],
-        portrait: gameData?.portrait || ''
+        pyramid:   gameData?.pyramid   || [],
+        kept:      gameData?.kept      || [],
+        discarded: gameData?.discarded || [],
+        portrait:  gameData?.portrait  || ''
     });
 
     const sendRes = await fetch('https://api.resend.com/emails', {

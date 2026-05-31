@@ -765,7 +765,8 @@ function saveSession(pyramidOrder, portrait) {
    EMAIL OPT-IN
 ════════════════════════════════════════════ */
 function renderEmailOptIn(container, pyramidOrder, portrait) {
-    const keptLabels = [...kept].map(v => label(v));
+    const keptLabels      = [...kept].map(v => label(v));
+    const discardedLabels = [...discarded].map(v => label(v));
 
     container.innerHTML = `
         <div class="email-opt-in">
@@ -800,7 +801,7 @@ function renderEmailOptIn(container, pyramidOrder, portrait) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     email,
-                    gameData: { pyramid: pyramidOrder, kept: keptLabels, portrait }
+                    gameData: { pyramid: pyramidOrder, kept: keptLabels, discarded: discardedLabels, portrait }
                 })
             });
 
