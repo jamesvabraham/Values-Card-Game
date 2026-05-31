@@ -750,25 +750,29 @@ Write the 1–2 sentence portrait now. Write in second person ("You are someone 
    SAVE SESSION  (anonymous, fire-and-forget)
 ════════════════════════════════════════════ */
 function saveSession(pyramidOrder, portrait) {
-    const keptLabels      = [...kept].map(v => label(v));
-    const discardedLabels = [...discarded].map(v => label(v));
-    const selectedLabels  = [...selected].map(v => label(v));
+    const payload = JSON.stringify({
+        browserId: getBrowserId(),
+        gameData: {
+            selected:    [...selected].map(v => label(v)),
+            kept:        [...kept].map(v => label(v)),
+            discarded:   [...discarded].map(v => label(v)),
+            comparisons: pairHistory,
+            pyramid:     pyramidOrder,
+            portrait
+        }
+    });
 
-    fetch('/api/save-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            browserId: getBrowserId(),
-            gameData: {
-                selected:    selectedLabels,
-                kept:        keptLabels,
-                discarded:   discardedLabels,
-                comparisons: pairHistory,
-                pyramid:     pyramidOrder,
-                portrait
-            }
-        })
-    }).catch(e => console.warn('Session save failed (non-critical):', e.message));
+    // sendBeacon guarantees delivery even when the user closes the tab.
+    // Falls back to fetch for any environment that doesn't support it.
+    if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/save-session', new Blob([payload], { type: 'application/json' }));
+    } else {
+        fetch('/api/save-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payload
+        }).catch(e => console.warn('Session save failed:', e.message));
+    }
 }
 
 /* ════════════════════════════════════════════
