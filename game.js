@@ -670,7 +670,7 @@ async function showCompletion() {
     // Generate portrait, then patch the portrait into the existing row
     const portrait = await generatePortrait(order, portraitWrap);
     if (portrait && rowId) updatePortrait(rowId, portrait);
-    renderEmailOptIn(emailSection, order, portrait);
+    renderEmailOptIn(emailSection, order, portrait, rowId);
 }
 
 async function generatePortrait(pyramidOrder, container) {
@@ -797,7 +797,7 @@ function updatePortrait(rowId, portrait) {
 /* ════════════════════════════════════════════
    EMAIL OPT-IN
 ════════════════════════════════════════════ */
-function renderEmailOptIn(container, pyramidOrder, portrait) {
+function renderEmailOptIn(container, pyramidOrder, portrait, rowId) {
     const keptLabels      = [...kept].map(v => label(v));
     const discardedLabels = [...discarded].map(v => label(v));
 
@@ -834,6 +834,7 @@ function renderEmailOptIn(container, pyramidOrder, portrait) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     email,
+                    rowId,
                     gameData: { pyramid: pyramidOrder, kept: keptLabels, discarded: discardedLabels, portrait }
                 })
             });

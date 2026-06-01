@@ -1,8 +1,10 @@
 // Sends a formatted HTML email summary to the user via Resend.
 // The email address is used ONLY to send — it is never logged or stored.
 
-const RESEND_KEY = process.env.RESEND_API_KEY;
-const FROM_EMAIL = process.env.FROM_EMAIL || 'Values Card Game <onboarding@resend.dev>';
+const RESEND_KEY    = process.env.RESEND_API_KEY;
+const FROM_EMAIL    = process.env.FROM_EMAIL || 'Values Card Game <onboarding@resend.dev>';
+const SUPABASE_URL  = process.env.SUPABASE_URL;
+const SUPABASE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 function card(value, label, bgColor, borderColor, textColor, labelColor, size) {
     const serif = 'Georgia, "Times New Roman", serif';
@@ -202,7 +204,7 @@ module.exports = async function handler(req, res) {
         return res.status(500).json({ error: 'RESEND_API_KEY is not configured' });
     }
 
-    const { email, gameData } = req.body || {};
+    const { email, rowId, gameData } = req.body || {};
     if (!email || !email.includes('@')) {
         return res.status(400).json({ error: 'Invalid email address' });
     }
@@ -233,6 +235,23 @@ module.exports = async function handler(req, res) {
         const err = await sendRes.json().catch(() => ({}));
         console.error('Resend error:', err);
         return res.status(500).json({ error: 'Failed to send email' });
+    }
+
+    // Mark email_sent = true on the session row (best-effort)
+    if (rowId && SUPABASE_URL && SUPABASE_KEY) {
+        await fetch(
+            `${SUPABASE_URL}/rest/v1/sessions?id=eq.${encodeURIComponent(rowId)}`,
+            {
+                method: 'PATCH',
+                headers: {
+                    'apikey':        SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                    'Content-Type':  'application/json',
+                    'Prefer':        'return=minimal'
+                },
+                body: JSON.stringify({ email_sent: true })
+            }
+        ).catch(e => console.warn('email_sent update failed:', e.message));
     }
 
     return res.status(200).json({ ok: true });
